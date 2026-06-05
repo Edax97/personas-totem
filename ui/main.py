@@ -289,12 +289,10 @@ class KioskApp(tk.Tk):
 
         if self.sidebar_expanded:
             self.sidebar.place_configure(width=0)
-            w=self.winfo_width()
-            self.content.place_configure(x=0, width=w)
+            self.content.place_configure(x=0, width=-0)
         else:
             self.sidebar.place_configure(width=self.SIDEBAR_W)
-            w=self.winfo_width()
-            self.content.place_configure(x=self.SIDEBAR_W, width=w-self.SIDEBAR_W)
+            self.content.place_configure(x=self.SIDEBAR_W, width=-self.SIDEBAR_W)
 
         self.toggle_clicked_time = time.time()        
         self.sidebar_expanded = not self.sidebar_expanded
