@@ -3,8 +3,8 @@ Kiosk
 Host that embeds X11 window apps
 
 Requirements:
-  apt install xdotool
   pip install pillow
+  sudo apt install xdotool x11-utils python3-xlib
 """
 
 import tkinter as tk
@@ -14,6 +14,14 @@ import time
 import os
 import signal
 #from PIL import Image, ImageTk
+
+try:
+    from Xlib import display as Xdisplay, X
+    from Xlib.error import XError
+    XLIB_OK = True
+except ImportError:
+    XLIB_OK = False
+    print("Warning: python3-xlib not found. Run: sudo apt install python3-xlib")
 
 # ---------------------------------------------------------------------------
 # App definitions — add any graphical app here
@@ -46,8 +54,11 @@ APPS = [
     },
 ]
 
+# How many ms to wait before acting on a resize event (debounce).
+RESIZE_DEBOUNCE_MS = 120
+
 # ---------------------------------------------------------------------------
-# X11 embed
+# X11 embed  (only this section changed)
 # ---------------------------------------------------------------------------
 
 def find_window_id(title_hint: str, timeout: float = 8.0) -> int | None:
@@ -64,24 +75,75 @@ def find_window_id(title_hint: str, timeout: float = 8.0) -> int | None:
         time.sleep(0.25)
     return None
 
-def reparent_window(xid: int, target_xid: int):
-    """Re-parent xid into target_xid using xdotool."""
-    subprocess.run(["xdotool", "windowreparent", str(xid), str(target_xid)],
-                   check=True)
 
-def resize_window(xid: int, w: int, h: int):
-    subprocess.run(["xdotool", "windowsize", str(xid), str(w), str(h)])
+def embed_window(xid: int, parent_xid: int, w: int, h: int):
+    """
+    Atomically strip decorations, reparent, and size the window in one
+    server-grabbed transaction so the compositor never sees an intermediate
+    state — eliminates the reparent blink.
+    """
+    if not XLIB_OK:
+        # xdotool fallback (more blink-prone but functional)
+        subprocess.run(["xdotool", "windowreparent", str(xid), str(parent_xid)], capture_output=True)
+        subprocess.run(["xdotool", "windowsize",     str(xid), str(w), str(h)],  capture_output=True)
+        subprocess.run(["xdotool", "windowmove",     str(xid), "0", "0"],         capture_output=True)
+        return
 
-def move_window(xid: int, x: int, y: int):
-    subprocess.run(["xdotool", "windowmove", str(xid), str(x), str(y)])
+    d = Xdisplay.Display()
+    try:
+        win    = d.create_resource_object("window", xid)
+        parent = d.create_resource_object("window", parent_xid)
 
-def remove_decorations(xid: int):
-    """Strip title-bar / decorations with xprop (Motif hints)."""
-    subprocess.run([
-        "xprop", "-id", str(xid),
-        "-f", "_MOTIF_WM_HINTS", "32c",
-        "-set", "_MOTIF_WM_HINTS", "2, 0, 0, 0, 0"
-    ])
+        d.grab_server()                                    # freeze compositor
+
+        win.unmap()                                        # hide during transition
+
+        atom = d.intern_atom("_MOTIF_WM_HINTS")           # strip decorations
+        win.change_property(atom, atom, 32, [2, 0, 0, 0, 0])
+
+        win.reparent(parent, 0, 0)                         # move into our frame
+        win.configure(width=max(1, w), height=max(1, h), x=0, y=0)
+
+        win.map()                                          # show at final size/pos
+
+        d.ungrab_server()                                  # one single repaint
+        d.sync()
+    except XError as e:
+        print(f"embed_window XError: {e}")
+        try:
+            d.ungrab_server()
+        except Exception:
+            pass
+    finally:
+        d.close()
+
+
+def resize_embedded(xid: int, w: int, h: int):
+    """
+    Resize an already-embedded window without a visible blank frame.
+    GrabServer prevents the compositor from showing intermediate states.
+    """
+    if not XLIB_OK:
+        subprocess.run(["xdotool", "windowsize", str(xid), str(w), str(h)], capture_output=True)
+        subprocess.run(["xdotool", "windowmove", str(xid), "0", "0"],        capture_output=True)
+        return
+
+    d = Xdisplay.Display()
+    try:
+        win = d.create_resource_object("window", xid)
+        d.grab_server()
+        win.configure(width=max(1, w), height=max(1, h), x=0, y=0)
+        d.ungrab_server()
+        d.sync()
+    except XError as e:
+        print(f"resize_embedded XError: {e}")
+        try:
+            d.ungrab_server()
+        except Exception:
+            pass
+    finally:
+        d.close()
+
 
 # ---------------------------------------------------------------------------
 # Main kiosk
@@ -112,6 +174,7 @@ class KioskApp(tk.Tk):
         self._proc: subprocess.Popen | None = None
         self._embedded_xid: int | None = None
         self._active_btn: tk.Widget | None = None
+        self._resize_job: str | None = None   # debounce handle
 
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -151,7 +214,6 @@ class KioskApp(tk.Tk):
         
         self.sidebar = tk.Frame(mainframe, bg=self.SIDEBAR, width=self.SIDEBAR_W)
         self.sidebar.place(x=0, y=0, relheight=1.0, width=0)
-        #sidebar.pack(side=tk.LEFT, fill=tk.Y)
         self.sidebar.pack_propagate(False)
         
         # ── Content area ───────────────────────────────────────────────
@@ -224,9 +286,17 @@ class KioskApp(tk.Tk):
     def _toggle_sidebar(self, time_off=0.5):
         if time.time() < self.toggle_clicked_time + time_off:
             return
+
+        if self.sidebar_expanded:
+            self.sidebar.place_configure(width=0)
+            w=self.winfo_width()
+            self.content.place_configure(x=0, width=w)
+        else:
+            self.sidebar.place_configure(width=self.SIDEBAR_W)
+            w=self.winfo_width()
+            self.content.place_configure(x=self.SIDEBAR_W, width=w-self.SIDEBAR_W)
+
         self.toggle_clicked_time = time.time()        
-        target = 0 if self.sidebar_expanded else self.SIDEBAR_W
-        self._animate_sidebar(target)
         self.sidebar_expanded = not self.sidebar_expanded
         
     def _animate_sidebar(self, target: int, step=15):
@@ -246,7 +316,9 @@ class KioskApp(tk.Tk):
         self._stop_current()           # kill whatever is running first
         self._set_active_btn(app["id"])
         self._stop_btn.configure(state=tk.NORMAL)
-        self._placeholder.place_forget()
+        # lower placeholder instead of place_forget to avoid triggering
+        # a redraw on _embed_frame (which causes a flash)
+        self._placeholder.lower()
 
         # Launch in a thread so the GUI stays responsive
         threading.Thread(
@@ -274,45 +346,63 @@ class KioskApp(tk.Tk):
 
             self._embedded_xid = xid
 
-            # 3. Remove title bar / decorations
-            remove_decorations(xid)
-
-            # 4. Re-parent the window into our embed frame
-            embed_xid = self._embed_frame.winfo_id()
-            reparent_window(xid, embed_xid)
-
-            # 5. Resize to fill the embed frame
-            self.after(100, self._fit_embedded_window)
+            # 3. Schedule the actual embedding on the main thread
+            #    (Tkinter is not thread-safe; winfo_id/winfo_width must
+            #    be called from the main thread)
+            self.after(0, self._do_embed)
 
         except Exception as exc:
             print(f"Error: {exc}")
 
-    def _fit_embedded_window(self):
-        """Resize the embedded window to fill the embed frame."""
+    def _do_embed(self):
+        """Main-thread: atomically embed and size the foreign window."""
         if self._embedded_xid is None:
             return
         self._embed_frame.update_idletasks()
-        w = self._embed_frame.winfo_width()
-        h = self._embed_frame.winfo_height()
-        resize_window(self._embedded_xid, w, h)
-        move_window(self._embedded_xid, 0, 0)
-        # Re-bind on frame resize so the embedded window tracks it
+        w          = max(1, self._embed_frame.winfo_width())
+        h          = max(1, self._embed_frame.winfo_height())
+        parent_xid = self._embed_frame.winfo_id()
+
+        embed_window(self._embedded_xid, parent_xid, w, h)
+
+        # Start tracking resizes only after embedding is done
         self._embed_frame.bind("<Configure>", self._on_frame_resize)
 
     def _on_frame_resize(self, event):
-        if self._embedded_xid:
-            resize_window(self._embedded_xid, event.width, event.height)
+        """Debounced resize — fires once the user stops dragging."""
+        if not self._embedded_xid:
+            return
+        if self._resize_job:
+            self.after_cancel(self._resize_job)
+        w, h = event.width, event.height
+        self._resize_job = self.after(
+            RESIZE_DEBOUNCE_MS,
+            lambda: self._apply_resize(w, h)
+        )
+
+    def _apply_resize(self, w: int, h: int):
+        self._resize_job = None
+        if self._embedded_xid and w > 1 and h > 1:
+            resize_embedded(self._embedded_xid, w, h)
 
     def _stop_current(self):
+        # Cancel any pending debounced resize
+        if self._resize_job:
+            self.after_cancel(self._resize_job)
+            self._resize_job = None
+
         self._embed_frame.unbind("<Configure>")
+
         if self._proc is not None:
             try:
                 os.killpg(os.getpgid(self._proc.pid), signal.SIGTERM)
             except Exception:
                 pass
             self._proc = None
+
         self._embedded_xid = None
-        self._placeholder.place(relx=0, rely=0, relwidth=1, relheight=1)
+        # lift placeholder back on top (no layout recalc, no flash)
+        self._placeholder.lift()
         self._stop_btn.configure(state=tk.DISABLED)
         self._set_active_btn(None)
 
