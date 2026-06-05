@@ -167,9 +167,9 @@ class KioskApp(tk.Tk):
         self.title("Labotec - Visión artificial")
         self.configure(bg=self.BG)
         self.resizable(False, False)
-        w = self.winfo_screenwidth()
+        self.w = self.winfo_screenwidth()
         h = self.winfo_screenheight()
-        self.geometry(f"{w}x{h}")
+        self.geometry(f"{self.w}x{h}")
 
         self._proc: subprocess.Popen | None = None
         self._embedded_xid: int | None = None
