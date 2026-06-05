@@ -28,14 +28,14 @@ APPS = [
     #     # xdotool will search for a window whose name contains this string
     #     "window_title_hint": "People Counter",
     # },
-    {
-        "id": "text-editor",
-        "label": "Text Editor",
-        "icon": "",
-        "desc": "System text editor",
-        "cmd": ["thonny"],          # swap for mousepad, kate, etc.
-        "window_title_hint": "Thonny",
-    },
+    # {
+    #     "id": "text-editor",
+    #     "label": "Text Editor",
+    #     "icon": "",
+    #     "desc": "System text editor",
+    #     "cmd": ["thonny"],          # swap for mousepad, kate, etc.
+    #     "window_title_hint": "Thonny",
+    # },
     {
         "id": "calculator",
         "label": "Calculator",
@@ -88,10 +88,10 @@ def remove_decorations(xid: int):
 # ---------------------------------------------------------------------------
 class KioskApp(tk.Tk):
    
-    SIDEBAR_W = 280
+    SIDEBAR_W = 480
     BG        = "#0d0f14"
     SIDEBAR   = "#131720"
-    TOPBAR_H = 48
+    TOPBAR_H = 88
     TOPBAR = "#131620"
     ACCENT    = "#00d4ff"
     BTN_NORM  = "#1c2030"
@@ -128,7 +128,7 @@ class KioskApp(tk.Tk):
             fg="white",
             activebackground=self.TOPBAR,
             activeforeground="white",
-            font=("Monospace", 28),
+            font=("Monospace", 48),
             highlightthickness=0,
             bd=0,
             command=self._toggle_sidebar,
@@ -140,7 +140,7 @@ class KioskApp(tk.Tk):
         # img_label.pack(side=tk.RIGHT, padx=5, pady=0)
         tk.Label(
             topbar, text="Labotec | Visión artificial", bg=self.TOPBAR,
-            fg="white", font=(self.FONT, 12, "bold"),
+            fg="white", font=(self.FONT, 22, "bold"),
         ).pack(side=tk.TOP, fill=tk.X, pady=(16, 4))
 
         self.sidebar_expanded=False
@@ -161,7 +161,7 @@ class KioskApp(tk.Tk):
         # Logo / title
         tk.Label(
             self.sidebar, text="Selecciona app", bg=self.SIDEBAR,
-            fg=self.ACCENT, font=(self.FONT, 14, "bold"),
+            fg=self.ACCENT, font=(self.FONT, 24, "bold"),
             pady=24
         ).pack(fill=tk.X)
 
@@ -177,7 +177,7 @@ class KioskApp(tk.Tk):
                 bg=self.BTN_NORM, fg=self.TXT,
                 activebackground=self.BTN_ACT, activeforeground=self.ACCENT,
                 relief=tk.FLAT, bd=0,
-                font=(self.FONT, 13),
+                font=(self.FONT, 23),
                 padx=16, pady=18,
                 cursor="hand2",
                 command=lambda a=app: self._launch(a),
@@ -196,7 +196,7 @@ class KioskApp(tk.Tk):
             bg=self.BTN_NORM, fg="#ff4d6d",
             activebackground="#2a0a12", activeforeground="#ff4d6d",
             relief=tk.FLAT, bd=0,
-            font=(self.FONT, 13),
+            font=(self.FONT, 23),
             padx=16, pady=18,
             cursor="hand2",
             command=self._stop_current,
@@ -214,7 +214,7 @@ class KioskApp(tk.Tk):
             self._placeholder,
             text="Seleccione app desde el menú",
             bg=self.BG, fg=self.TXT_DIM,
-            font=(self.FONT, 14),
+            font=(self.FONT, 24),
         ).place(relx=0.5, rely=0.5, anchor="center")
         if len(APPS) > 0:
             self._launch(app=APPS[0])
