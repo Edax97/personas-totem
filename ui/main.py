@@ -13,7 +13,7 @@ import threading
 import time
 import os
 import signal
-from PIL import Image, ImageTk
+#from PIL import Image, ImageTk
 
 # ---------------------------------------------------------------------------
 # App definitions — add any graphical app here
@@ -134,10 +134,10 @@ class KioskApp(tk.Tk):
             command=self._toggle_sidebar,
         )
         self.toggle_btn.pack(side=tk.LEFT, padx=8, pady=2)
-        img = ImageTk.PhotoImage(Image.open("labotec.png").resize((48, 48)))
-        img_label = tk.Label(topbar, image=img, bg=self.TOPBAR)
-        img_label.image = img
-        img_label.pack(side=tk.RIGHT, padx=5, pady=0)
+        # img = ImageTk.PhotoImage(Image.open("labotec.png").resize((48, 48)))
+        # img_label = tk.Label(topbar, image=img, bg=self.TOPBAR)
+        # img_label.image = img
+        # img_label.pack(side=tk.RIGHT, padx=5, pady=0)
         tk.Label(
             topbar, text="Labotec | Visión artificial", bg=self.TOPBAR,
             fg="white", font=(self.FONT, 12, "bold"),
