@@ -332,7 +332,7 @@ class KioskApp(tk.Tk):
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         if APPS:
-            self.after(1000, lambda: self._launch(APPS[0]))
+            self.after(1000, lambda: self._launch_first_app)
         else:
             self._placeholder.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -355,6 +355,24 @@ class KioskApp(tk.Tk):
             max(1, self._embed_frame.winfo_width()),
             max(1, self._embed_frame.winfo_height()),
         )
+
+    def _launch_first_app(self):
+        """Wait until the embed frame's X window is actually realized."""
+        self.update_idletasks()
+        self.update()
+    
+        # winfo_ismapped() confirms the window is visible on X, not just created in Tk
+        if not self._embed_frame.winfo_ismapped():
+            self.after(200, self._launch_first_app)
+            return
+    
+        # Also confirm the X server actually knows about this window
+        xid = self._embed_frame.winfo_id()
+        if xid == 0:
+            self.after(200, self._launch_first_app)
+            return
+    
+        self._launch(APPS[0])
 
     def _launch(self, app: dict):
         self._stop_current()
