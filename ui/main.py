@@ -224,7 +224,7 @@ class KioskApp(tk.Tk):
         self.resizable(False, False)
         self.w = self.winfo_screenwidth()
         self.h = self.winfo_screenheight()
-        self.geometry(f"{self.w}x{self.h}")
+        self.geometry(f"{self.w}x{self.h}+0+0")
 
         self._proc: subprocess.Popen | None = None
         self._embedded_xid: int | None = None
@@ -351,6 +351,7 @@ class KioskApp(tk.Tk):
         self._set_active_btn(app["id"])
         self._stop_btn.configure(state=tk.NORMAL)
         self._placeholder.lower()
+        self._toggle_sidebar()
         embed_w, embed_h = self._get_embed_frame_size()
         threading.Thread(
             target=self._embed_worker,
