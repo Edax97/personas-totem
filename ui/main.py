@@ -234,7 +234,7 @@ class KioskApp(tk.Tk):
         self.w = self.winfo_screenwidth()
         self.h = self.winfo_screenheight()
         self.geometry(f"{self.w}x{self.h}+0+0")
-        self.overrideredirect(True)
+        #self.overrideredirect(True)
 
         self._proc: subprocess.Popen | None = None
         self._embedded_xid: int | None = None
