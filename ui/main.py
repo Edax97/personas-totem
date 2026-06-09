@@ -51,7 +51,15 @@ APPS = [
         "desc": "System calculator",
         "cmd": ["galculator"],
         "window_title_hint": "galculator",
-    },
+    }, 
+    {
+          "id": "contador",
+          "label": "Contador de personas",
+          "icon": "",
+          "desc": "Contador de personas",
+          "cmd": ["galculator"],
+          "window_title_hint": "python",
+      },
 ]
 
 # How many ms to wait before acting on a resize event (debounce).
