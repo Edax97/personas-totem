@@ -25,7 +25,7 @@ except ImportError:
 APPS = [
     {
         "id": "contador",
-        "label": "Contador de personas",
+        "label": "Conteo de visitantes",
         "icon": "",
         "desc": "Contador de personas",
         "cmd": ["/usr/local/bin/conteo-personas.sh"],
@@ -41,6 +41,15 @@ APPS = [
         "window_title_hint": "fatiga",
         "size_args": True,
     },
+    {
+            "id": "pose",
+            "label": "Pose humana",
+            "icon": "",
+            "desc": "Pose tracking",
+            "cmd": ["/usr/local/bin/pose.sh"],
+            "window_title_hint": "Pose",
+            "size_args": True,
+        },
 ]
 
 RESIZE_DEBOUNCE_MS = 120

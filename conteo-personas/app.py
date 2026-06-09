@@ -97,7 +97,6 @@ class VisitorSet:
         except (FileNotFoundError, ValueError):
             return default
 
-WINDOW_NAME="Contador de personas"        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--width",  type=int, default=0)
