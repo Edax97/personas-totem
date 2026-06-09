@@ -251,7 +251,7 @@ class KioskApp(tk.Tk):
         ).pack(side=tk.LEFT, padx=8, pady=2)
 
         tk.Label(
-            topbar, text="Labotec | Visión artificial",
+            topbar, text="Labotec | Visión artificial   ",
             bg=self.TOPBAR, fg="white",
             font=(self.FONT, 22, "bold"),
         ).pack(side=tk.TOP, fill=tk.X, pady=(36, 4), padx=(0,0))
