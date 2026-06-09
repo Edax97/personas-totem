@@ -38,7 +38,7 @@ APPS = [
         "icon": "",
         "desc": "Sensor de fatiga",
         "cmd": ["/usr/local/bin/fatiga.sh"],
-        "window_title_hint": "fatiga",
+        "window_title_hint": "Deteccion fatiga",
         "size_args": True,
     },
     {
