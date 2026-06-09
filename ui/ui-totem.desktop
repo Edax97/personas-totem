@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Totem
+Exec=lxterminal -e "bash /usr/local/bin/ui-totem.sh"
+WorkingDirectory=/home/pi
+Environment=DISPLAY=:0
