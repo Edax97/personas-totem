@@ -254,7 +254,7 @@ class KioskApp(tk.Tk):
             topbar, text="Labotec | Visión artificial",
             bg=self.TOPBAR, fg="white",
             font=(self.FONT, 22, "bold"),
-        ).pack(side=tk.TOP, fill=tk.X, pady=(16, 4))
+        ).pack(side=tk.TOP, fill=tk.X, pady=(36, 4), padx=(-16,0))
 
         self.sidebar_expanded = False
         self.toggle_clicked_time = time.time()
