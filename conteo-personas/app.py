@@ -3,6 +3,7 @@
 # Cuenta personas a menos de 3.2metros, que se queden 25 segundos o más en el stand 
 # Todo: lee ultima cuenta desde un archivo
 # 
+import argparse
 from datetime import datetime
 import time
 
@@ -96,8 +97,16 @@ class VisitorSet:
         except (FileNotFoundError, ValueError):
             return default
 
-        
+WINDOW_NAME="Contador de personas"        
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--width",  type=int, default=0)
+    parser.add_argument("--height", type=int, default=0)
+    args, _ = parser.parse_known_args()
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+    if args.width > 0 and args.height > 0:
+        cv2.resizeWindow(WINDOW_NAME, args.width, args.height)
+    
     try:
         cap = find_camera()
         #cap = cv2.VideoCapture("videos/personas_lima1.mp4")
