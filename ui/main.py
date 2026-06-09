@@ -332,7 +332,7 @@ class KioskApp(tk.Tk):
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         if APPS:
-            self.after(1000, lambda: self._launch_first_app)
+            self.after(1000, lambda: self._launch(APPS[0]))
         else:
             self._placeholder.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -406,6 +406,8 @@ class KioskApp(tk.Tk):
                 print(f"[kiosk] window '{app['window_title_hint']}' not found")
                 return
 
+            print(f"[kiosk] found window xid={xid} for '{app['window_title_hint']}'")
+
             self._embedded_xid = xid
             hide_window_offscreen(xid)
             self.after(0, lambda: self._do_embed(embed_w, embed_h))
@@ -413,14 +415,26 @@ class KioskApp(tk.Tk):
         except Exception as exc:
             print(f"[kiosk] embed_worker error: {exc}")
 
-    def _do_embed(self, w: int, h: int):
+    def __do_embed(self, w: int, h: int):
         if self._embedded_xid is None:
+            print("[kiosk] _do_embed called but _embedded_xid is None")
             return
         actual_w, actual_h = self._get_embed_frame_size()
         parent_xid = self._embed_frame.winfo_id()
         embed_window(self._embedded_xid, parent_xid, actual_w, actual_h)
         self._embed_frame.bind("<Configure>", self._on_frame_resize)
-
+    def _do_embed(self, w: int, h: int):
+        if self._embedded_xid is None:
+            print("[kiosk] _do_embed called but _embedded_xid is None")
+            return
+        
+        parent_xid = self._embed_frame.winfo_id()
+        mapped = self._embed_frame.winfo_ismapped()
+        print(f"[kiosk] _do_embed: embedded_xid={self._embedded_xid} parent_xid={parent_xid} mapped={mapped} w={w} h={h}")
+        
+        actual_w, actual_h = self._get_embed_frame_size()
+        embed_window(self._embedded_xid, parent_xid, actual_w, actual_h)
+        self._embed_frame.bind("<Configure>", self._on_frame_resize)
     def _resize_embedded_to_frame(self):
         if not self._embedded_xid:
             return
