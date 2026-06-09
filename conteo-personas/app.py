@@ -168,9 +168,9 @@ if __name__ == "__main__":
             resize_width = args.width
             resize_height = args.height
             if scale > scale_frame:
-                resize_height = int(scale_frame * h)
+                resize_height = int(h * resize_width / w)
             else:
-                resize_width = int(scale_frame * w)
+                resize_width = int(w * resize_height / h)
                 
             frame = cv2.resize(frame, (resize_width, resize_height))
             
