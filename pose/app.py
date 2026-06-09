@@ -251,7 +251,7 @@ if __name__ == "__main__":
         # ---------------------------------------------------------------- #
         now = datetime.now()
         cv2.putText(frame,
-                    f"{now.strftime('%H:%M')} | Estimación de pose humana",
+                    f"{now.strftime('%H:%M')} | Estimacion de pose humana",
                     (20, 30),
                     cv2.FONT_HERSHEY_DUPLEX, 0.7, (50, 150, 20), 1, cv2.LINE_AA)
 
