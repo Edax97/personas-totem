@@ -55,7 +55,7 @@ APPS = [
 RESIZE_DEBOUNCE_MS = 120
 
 
-def find_window_id(title_hint: str, timeout: float = 10.0) -> int | None:
+def find_window_id(title_hint: str, timeout: float = 30.0) -> int | None:
     deadline = time.time() + timeout
     while time.time() < deadline:
         result = subprocess.run(
@@ -332,7 +332,7 @@ class KioskApp(tk.Tk):
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         if APPS:
-            self.after(1000, lambda: self._launch(APPS[0]))
+            self.after(1000, lambda: self._launch(APPS[0], True))
         else:
             self._placeholder.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -356,30 +356,13 @@ class KioskApp(tk.Tk):
             max(1, self._embed_frame.winfo_height()),
         )
 
-    def _launch_first_app(self):
-        """Wait until the embed frame's X window is actually realized."""
-        self.update_idletasks()
-        self.update()
-    
-        # winfo_ismapped() confirms the window is visible on X, not just created in Tk
-        if not self._embed_frame.winfo_ismapped():
-            self.after(200, self._launch_first_app)
-            return
-    
-        # Also confirm the X server actually knows about this window
-        xid = self._embed_frame.winfo_id()
-        if xid == 0:
-            self.after(200, self._launch_first_app)
-            return
-    
-        self._launch(APPS[0])
-
-    def _launch(self, app: dict):
+    def _launch(self, app: dict, first_launch=False):
         self._stop_current()
         self._set_active_btn(app["id"])
         self._stop_btn.configure(state=tk.NORMAL)
         self._placeholder.lower()
-        self._toggle_sidebar()
+        if not first_launch:
+            self._toggle_sidebar()
         embed_w, embed_h = self._get_embed_frame_size()
         threading.Thread(
             target=self._embed_worker,
@@ -401,7 +384,7 @@ class KioskApp(tk.Tk):
             )
             self._proc = proc
 
-            xid = find_window_id(app["window_title_hint"], timeout=15.0)
+            xid = find_window_id(app["window_title_hint"], timeout=35.0)
             if xid is None:
                 print(f"[kiosk] window '{app['window_title_hint']}' not found")
                 return
