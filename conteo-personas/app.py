@@ -103,9 +103,10 @@ if __name__ == "__main__":
     parser.add_argument("--width",  type=int, default=0)
     parser.add_argument("--height", type=int, default=0)
     args, _ = parser.parse_known_args()
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+
+    scale = 0
     if args.width > 0 and args.height > 0:
-        cv2.resizeWindow(WINDOW_NAME, args.width, args.height)
+        scale = float(args.height) / float(args.width)
     
     try:
         cap = find_camera()
@@ -156,11 +157,23 @@ if __name__ == "__main__":
             visitor_ids.register_id(id, current_epoch=current_epoch)
             if visitor_ids.is_visitor(id, current_epoch):
                 visitor_set.add(id)
-            
+
+
         now = datetime.now()
         cv2.putText(frame, f"{now.strftime('%H:%M')} - stand Labotec", org=(20, 30), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.7, color=(50, 150, 20))
         cv2.putText(frame, f"Visitantes totales: {visitor_set.get_count()}", org=(20, 60), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.7, color=(50, 150, 20))
-        
+
+        if args.width > 0 and args.height > 0:
+            scale_frame = float(h) / float(w)
+            resize_width = args.width
+            resize_height = args.height
+            if scale > scale_frame:
+                resize_height = int(scale_frame * h)
+            else:
+                resize_width = int(scale_frame * w)
+                
+            frame = cv2.resize(frame, (resize_width, resize_height))
+            
         cv2.imshow("Contador personas", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
