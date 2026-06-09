@@ -57,8 +57,8 @@ APPS = [
           "label": "Contador de personas",
           "icon": "",
           "desc": "Contador de personas",
-          "cmd": ["galculator"],
-          "window_title_hint": "python",
+          "cmd": ["/usr/local/bin/conteo-personas.sh"],
+          "window_title_hint": "Tracking",
       },
 ]
 
