@@ -332,7 +332,7 @@ class KioskApp(tk.Tk):
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         if APPS:
-            self.after(100, lambda: self._launch(APPS[0]))
+            self.after(1000, lambda: self._launch(APPS[0]))
         else:
             self._placeholder.place(relx=0, rely=0, relwidth=1, relheight=1)
 
