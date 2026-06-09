@@ -1,5 +1,4 @@
 """
-Kiosk
 Host that embeds X11 window apps
 
 Requirements:
@@ -51,22 +50,22 @@ APPS = [
         "desc": "System calculator",
         "cmd": ["galculator"],
         "window_title_hint": "galculator",
-    }, 
+    },
     {
-          "id": "contador",
-          "label": "Contador de personas",
-          "icon": "",
-          "desc": "Contador de personas",
-          "cmd": ["/usr/local/bin/conteo-personas.sh"],
-          "window_title_hint": "Tracking",
-      },
+        "id": "contador",
+        "label": "Contador de personas",
+        "icon": "",
+        "desc": "Contador de personas",
+        "cmd": ["/usr/local/bin/conteo-personas.sh"],
+        "window_title_hint": "Tracking",
+    },
 ]
 
 # How many ms to wait before acting on a resize event (debounce).
 RESIZE_DEBOUNCE_MS = 120
 
 # ---------------------------------------------------------------------------
-# X11 embed  (only this section changed)
+# X11 embed
 # ---------------------------------------------------------------------------
 
 def find_window_id(title_hint: str, timeout: float = 8.0) -> int | None:
@@ -84,11 +83,30 @@ def find_window_id(title_hint: str, timeout: float = 8.0) -> int | None:
     return None
 
 
+def _strip_size_hints(d: "Xdisplay.Display", win) -> None:
+    """
+    Remove WM_NORMAL_HINTS from a window so the WM (and us) can freely resize it.
+
+    cv2 sets min_width/min_height == max_width/max_height == initial size, which
+    makes XConfigureWindow silently ignored.  Clearing the hints lets us resize
+    to any dimensions we want.
+    """
+    try:
+        # WM_NORMAL_HINTS is a standard ICCCM atom; Xlib knows it by name.
+        hints_atom = d.intern_atom("WM_NORMAL_HINTS")
+        win.delete_property(hints_atom)
+    except Exception:
+        pass  # not fatal — best-effort only
+
+
 def embed_window(xid: int, parent_xid: int, w: int, h: int):
     """
-    Atomically strip decorations, reparent, and size the window in one
-    server-grabbed transaction so the compositor never sees an intermediate
-    state — eliminates the reparent blink.
+    Atomically strip decorations and size hints, reparent, and resize
+    the window in one server-grabbed transaction.
+
+    The extra _strip_size_hints() call is critical for cv2 windows:
+    OpenCV sets min==max==initial size in WM_NORMAL_HINTS, causing any
+    subsequent XConfigureWindow to be silently rejected by the server.
     """
     if not XLIB_OK:
         # xdotool fallback (more blink-prone but functional)
@@ -106,8 +124,13 @@ def embed_window(xid: int, parent_xid: int, w: int, h: int):
 
         win.unmap()                                        # hide during transition
 
-        atom = d.intern_atom("_MOTIF_WM_HINTS")           # strip decorations
-        win.change_property(atom, atom, 32, [2, 0, 0, 0, 0])
+        # Strip WM decorations
+        motif_atom = d.intern_atom("_MOTIF_WM_HINTS")
+        win.change_property(motif_atom, motif_atom, 32, [2, 0, 0, 0, 0])
+
+        # FIX: strip WM_NORMAL_HINTS so cv2's fixed min/max size constraint
+        # is removed — otherwise XConfigureWindow is silently ignored.
+        _strip_size_hints(d, win)
 
         win.reparent(parent, 0, 0)                         # move into our frame
         win.configure(width=max(1, w), height=max(1, h), x=0, y=0)
@@ -157,7 +180,7 @@ def resize_embedded(xid: int, w: int, h: int):
 # Main kiosk
 # ---------------------------------------------------------------------------
 class KioskApp(tk.Tk):
-   
+
     SIDEBAR_W = 480
     BG        = "#0d0f14"
     SIDEBAR   = "#131720"
@@ -205,25 +228,21 @@ class KioskApp(tk.Tk):
             command=self._toggle_sidebar,
         )
         self.toggle_btn.pack(side=tk.LEFT, padx=8, pady=2)
-        # img = ImageTk.PhotoImage(Image.open("labotec.png").resize((48, 48)))
-        # img_label = tk.Label(topbar, image=img, bg=self.TOPBAR)
-        # img_label.image = img
-        # img_label.pack(side=tk.RIGHT, padx=5, pady=0)
         tk.Label(
             topbar, text="Labotec | Visión artificial", bg=self.TOPBAR,
             fg="white", font=(self.FONT, 22, "bold"),
         ).pack(side=tk.TOP, fill=tk.X, pady=(16, 4))
 
-        self.sidebar_expanded=False
-        self.toggle_clicked_time=time.time()
-        
+        self.sidebar_expanded = False
+        self.toggle_clicked_time = time.time()
+
         mainframe = tk.Frame(self, bg=self.BG)
         mainframe.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
+
         self.sidebar = tk.Frame(mainframe, bg=self.SIDEBAR, width=self.SIDEBAR_W)
         self.sidebar.place(x=0, y=0, relheight=1.0, width=0)
         self.sidebar.pack_propagate(False)
-        
+
         # ── Content area ───────────────────────────────────────────────
         self.content = tk.Frame(mainframe, bg=self.BG)
         self.content.place(x=0, y=0, relwidth=1, relheight=1, width=self.winfo_width())
@@ -300,11 +319,11 @@ class KioskApp(tk.Tk):
             self.content.place_configure(x=0, width=self.w)
         else:
             self.sidebar.place_configure(width=self.SIDEBAR_W)
-            self.content.place_configure(x=self.SIDEBAR_W, width=self.w-self.SIDEBAR_W)
+            self.content.place_configure(x=self.SIDEBAR_W, width=self.w - self.SIDEBAR_W)
 
-        self.toggle_clicked_time = time.time()        
+        self.toggle_clicked_time = time.time()
         self.sidebar_expanded = not self.sidebar_expanded
-        
+
     def _animate_sidebar(self, target: int, step=15):
         current = self.sidebar.winfo_width()
         delta = step if target > current else -step
@@ -314,19 +333,16 @@ class KioskApp(tk.Tk):
             return
         new_w = current + delta
         self.sidebar.place_configure(width=new_w)
-        w=self.winfo_width()
-        self.content.place_configure(x=new_w, width=w-new_w)
-        self.sidebar_anim_id = self.after(10, lambda: self._animate_sidebar(target, step)) 
+        w = self.winfo_width()
+        self.content.place_configure(x=new_w, width=w - new_w)
+        self.sidebar_anim_id = self.after(10, lambda: self._animate_sidebar(target, step))
 
     def _launch(self, app: dict):
         self._stop_current()           # kill whatever is running first
         self._set_active_btn(app["id"])
         self._stop_btn.configure(state=tk.NORMAL)
-        # lower placeholder instead of place_forget to avoid triggering
-        # a redraw on _embed_frame (which causes a flash)
         self._placeholder.lower()
 
-        # Launch in a thread so the GUI stays responsive
         threading.Thread(
             target=self._embed_worker,
             args=(app,),
@@ -335,7 +351,6 @@ class KioskApp(tk.Tk):
 
     def _embed_worker(self, app: dict):
         try:
-            # 1. Start the subprocess
             proc = subprocess.Popen(
                 app["cmd"],
                 stdout=subprocess.DEVNULL,
@@ -344,7 +359,6 @@ class KioskApp(tk.Tk):
             )
             self._proc = proc
 
-            # 2. Wait for its window to appear on screen
             xid = find_window_id(app["window_title_hint"], timeout=10.0)
 
             if xid is None:
@@ -352,9 +366,12 @@ class KioskApp(tk.Tk):
 
             self._embedded_xid = xid
 
-            # 3. Schedule the actual embedding on the main thread
-            #    (Tkinter is not thread-safe; winfo_id/winfo_width must
-            #    be called from the main thread)
+            # FIX: Give the cv2 window a moment to finish its own initialisation
+            # before we reparent it.  cv2 may still be setting up WM_NORMAL_HINTS
+            # when xdotool finds the window, and reparenting too early leaves a
+            # race where the cv2 app re-applies fixed size hints after we clear them.
+            time.sleep(0.4)
+
             self.after(0, self._do_embed)
 
         except Exception as exc:
@@ -364,15 +381,50 @@ class KioskApp(tk.Tk):
         """Main-thread: atomically embed and size the foreign window."""
         if self._embedded_xid is None:
             return
+
+        # FIX: Two rounds of update_idletasks() + a deferred read give the
+        # geometry manager time to commit the final frame size before we
+        # pass w/h to embed_window.  A single update_idletasks() can still
+        # return the widget's initial 1×1 placeholder size for cv2 windows.
         self._embed_frame.update_idletasks()
-        w          = max(1, self._embed_frame.winfo_width())
-        h          = max(1, self._embed_frame.winfo_height())
+        self.update_idletasks()
+
+        # Schedule the actual embed 100ms later so the layout is fully settled.
+        self.after(100, self._do_embed_deferred)
+
+    def _do_embed_deferred(self):
+        """Called 100ms after _do_embed; frame geometry is guaranteed settled."""
+        if self._embedded_xid is None:
+            return
+
+        w = max(1, self._embed_frame.winfo_width())
+        h = max(1, self._embed_frame.winfo_height())
         parent_xid = self._embed_frame.winfo_id()
+
+        # Sanity-check: if the frame still reports 1×1 the layout isn't ready.
+        # Retry once more after another short delay rather than embedding tiny.
+        if w <= 1 or h <= 1:
+            self.after(200, self._do_embed_deferred)
+            return
 
         embed_window(self._embedded_xid, parent_xid, w, h)
 
+        # FIX: Send a second explicit resize 300ms after reparenting.
+        # cv2 sometimes re-applies its size hints right after map(), overriding
+        # our XConfigureWindow.  The second call wins the race reliably.
+        self.after(300, self._post_embed_resize)
+
         # Start tracking resizes only after embedding is done
         self._embed_frame.bind("<Configure>", self._on_frame_resize)
+
+    def _post_embed_resize(self):
+        """Second resize pass — wins the race against cv2 re-applying size hints."""
+        if self._embedded_xid is None:
+            return
+        w = max(1, self._embed_frame.winfo_width())
+        h = max(1, self._embed_frame.winfo_height())
+        if w > 1 and h > 1:
+            resize_embedded(self._embedded_xid, w, h)
 
     def _on_frame_resize(self, event):
         """Debounced resize — fires once the user stops dragging."""
@@ -392,7 +444,6 @@ class KioskApp(tk.Tk):
             resize_embedded(self._embedded_xid, w, h)
 
     def _stop_current(self):
-        # Cancel any pending debounced resize
         if self._resize_job:
             self.after_cancel(self._resize_job)
             self._resize_job = None
@@ -407,7 +458,6 @@ class KioskApp(tk.Tk):
             self._proc = None
 
         self._embedded_xid = None
-        # lift placeholder back on top (no layout recalc, no flash)
         self._placeholder.lift()
         self._stop_btn.configure(state=tk.DISABLED)
         self._set_active_btn(None)
@@ -420,7 +470,6 @@ class KioskApp(tk.Tk):
                 btn.configure(bg=self.BTN_NORM, fg=self.TXT)
 
     def _restore_btn_color(self, btn: tk.Button):
-        # Only restore if it's not the active one
         for aid, b in self._btns.items():
             if b is btn:
                 active_color = self.BTN_ACT if b.cget("fg") == self.ACCENT else self.BTN_NORM

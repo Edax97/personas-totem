@@ -152,7 +152,7 @@ if __name__ == "__main__":
         cv2.putText(frame, f"{now.strftime('%H:%M')} - stand Labotec", org=(20, 30), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.7, color=(50, 150, 20))
         cv2.putText(frame, f"Visitantes totales: {visitor_set.get_count()}", org=(20, 60), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.7, color=(50, 150, 20))
         
-        cv2.imshow("Tracking people", frame)
+        cv2.imshow("Contador personas", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
