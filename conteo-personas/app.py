@@ -164,8 +164,8 @@ if __name__ == "__main__":
 
         if args.width > 0 and args.height > 0:
             scale_frame = float(h) / float(w)
-            resize_width = args.width
-            resize_height = args.height
+            resize_width = 2156
+            resize_height = 3748
             if scale > scale_frame:
                 resize_height = int(h * resize_width / w)
             else:

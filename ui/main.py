@@ -351,10 +351,12 @@ class KioskApp(tk.Tk):
 
     def _get_embed_frame_size(self) -> tuple[int, int]:
         self.update_idletasks()
-        return (
-            max(1, self._embed_frame.winfo_width()),
-            max(1, self._embed_frame.winfo_height()),
-        )
+        w = self._embed_frame.winfo_width()
+        h = self._embed_frame.winfo_height()
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        print(f"[kiosk] frame: {w}x{h}  screen: {sw}x{sh}  window: {self.w}x{self.h}")
+        return max(1, w), max(1, h)
 
     def _launch(self, app: dict, first_launch=False):
         self._stop_current()
