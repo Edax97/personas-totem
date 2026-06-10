@@ -366,6 +366,7 @@ class KioskApp(tk.Tk):
         if not first_launch:
             self._toggle_sidebar()
         embed_w, embed_h = self._get_embed_frame_size()
+        embed_w, embed_h = 2156, 3748
         threading.Thread(
             target=self._embed_worker,
             args=(app, embed_w, embed_h),
