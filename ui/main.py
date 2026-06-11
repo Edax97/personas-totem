@@ -29,7 +29,7 @@ APPS = [
             "icon": "",
             "desc": "mpv show video",
             "cmd": ["./mpv_loop.sh"],
-            "window_title_hint": "mpv Media Player",
+            "window_title_hint": "mpv",
             "size_args": False,
         },
     {
