@@ -24,6 +24,15 @@ except ImportError:
 
 APPS = [
     {
+            "id": "mpv",
+            "label": "Labotec",
+            "icon": "",
+            "desc": "mpv show video",
+            "cmd": ["./mpv_loop.sh"],
+            "window_title_hint": "mpv Media Player",
+            "size_args": False,
+        },
+    {
         "id": "contador",
         "label": "Conteo de visitantes",
         "icon": "",
@@ -32,24 +41,24 @@ APPS = [
         "window_title_hint": "Contador personas",
         "size_args": True,
     },
-    {
-        "id": "fatiga",
-        "label": "Sensor de fatiga",
-        "icon": "",
-        "desc": "Sensor de fatiga",
-        "cmd": ["/usr/local/bin/fatiga.sh"],
-        "window_title_hint": "fatiga",
-        "size_args": True,
-    },
-    {
-            "id": "pose",
-            "label": "Pose humana",
-            "icon": "",
-            "desc": "Pose tracking",
-            "cmd": ["/usr/local/bin/pose.sh"],
-            "window_title_hint": "Pose",
-            "size_args": True,
-        },
+    # {
+    #     "id": "fatiga",
+    #     "label": "Sensor de fatiga",
+    #     "icon": "",
+    #     "desc": "Sensor de fatiga",
+    #     "cmd": ["/usr/local/bin/fatiga.sh"],
+    #     "window_title_hint": "fatiga",
+    #     "size_args": True,
+    # },
+    # {
+    #         "id": "pose",
+    #         "label": "Pose humana",
+    #         "icon": "",
+    #         "desc": "Pose tracking",
+    #         "cmd": ["/usr/local/bin/pose.sh"],
+    #         "window_title_hint": "Pose",
+    #         "size_args": True,
+    #     },
 ]
 
 RESIZE_DEBOUNCE_MS = 120
@@ -234,7 +243,7 @@ class KioskApp(tk.Tk):
         self.w = self.winfo_screenwidth()
         self.h = self.winfo_screenheight()
         self.geometry(f"{self.w}x{self.h}+0+0")
-        self.overrideredirect(True)
+        #self.overrideredirect(True)
 
         self._proc: subprocess.Popen | None = None
         self._embedded_xid: int | None = None
